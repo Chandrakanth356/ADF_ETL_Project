@@ -1,0 +1,61 @@
+{
+	"name": "pipeline_processeddata",
+	"properties": {
+		"activities": [
+			{
+				"name": "df_processed_data",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_silverlayer",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"SourceSqSilverlayer": {
+								"directory": {
+									"value": "raw/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "copieddata.csv"
+							},
+							"SqProcessedSink": {
+								"directory": {
+									"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "processeddata.csv"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
+				}
+			}
+		],
+		"variables": {
+			"sqsourcepath": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "project"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-04-29T12:30:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

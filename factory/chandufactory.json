@@ -1,0 +1,9 @@
+{
+	"name": "chandufactory",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "3788e51b-5466-4877-be0e-d4cb8af4379a",
+		"tenantId": "69e1d356-061d-4f4a-9a07-b58114cf2109"
+	}
+}

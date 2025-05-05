@@ -1,0 +1,19 @@
+{
+	"name": "gen2storagelink",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://chandustorage.dfs.core.windows.net/",
+			"accountKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "keyvaultlink",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "gen2key"
+			}
+		}
+	}
+}

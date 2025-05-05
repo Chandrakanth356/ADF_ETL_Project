@@ -1,0 +1,116 @@
+{
+	"name": "df_externalcall",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_gen2globalfolder",
+						"type": "DatasetReference"
+					},
+					"name": "CityCsv"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_gen2globalfolder",
+						"type": "DatasetReference"
+					},
+					"name": "CityWeatherCsv"
+				}
+			],
+			"transformations": [
+				{
+					"name": "externalCall1",
+					"linkedService": {
+						"referenceName": "ls_weatherapi",
+						"type": "LinkedServiceReference"
+					}
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "select2"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     sinkfilename as string",
+				"}",
+				"source(output(",
+				"          country as string,",
+				"          city as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     wildcardPaths:['ExternalCallTransformation/city.csv']) ~> CityCsv",
+				"derivedColumn1 call(mapColumn(",
+				"          country,",
+				"          city,",
+				"          RelativeURL",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false,",
+				"     output(",
+				"          result as (current as (air_quality as (co as string, {gb-defra-index} as string, no2 as string, o3 as string, pm10 as string, pm2_5 as string, so2 as string, {us-epa-index} as string), astro as (moon_illumination as string, moon_phase as string, moonrise as string, moonset as string, sunrise as string, sunset as string), cloudcover as string, feelslike as string, humidity as string, is_day as string, observation_time as string, precip as string, pressure as string, temperature as string, uv_index as string, visibility as string, weather_code as string, weather_descriptions as string[], weather_icons as string[], wind_degree as string, wind_dir as string, wind_speed as string), location as (country as string, lat as string, localtime as string, localtime_epoch as string, lon as string, name as string, region as string, timezone_id as string, utc_offset as string), request as (language as string, query as string, type as string, unit as string)),",
+				"          status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     format: 'rest',",
+				"     store: 'restservice',",
+				"     timeout: 30,",
+				"     requestInterval: 2000,",
+				"     httpMethod: 'GET',",
+				"     rowRelativeUrl: 'RelativeURL',",
+				"     bodyColumnName: 'result',",
+				"     statusColumnName: 'status',",
+				"     addResponseCode: true,",
+				"     requestFormat: ['type' -> 'json'],",
+				"     responseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> externalCall1",
+				"CityCsv derive(RelativeURL = '?access_key=2eb9faf5d2f83566468d0aad78d6e5cc&query='+city+','+country) ~> derivedColumn1",
+				"externalCall1 derive(Region = result.location.region,",
+				"          Time = result.current.observation_time,",
+				"          Sunrise = result.current.astro.sunrise,",
+				"          Sunset = result.current.astro.sunset,",
+				"          Humidity = result.current.humidity,",
+				"          Pressure = result.current.pressure,",
+				"          Temperature = result.current.temperature,",
+				"          Wind_speed = result.current.wind_speed) ~> derivedColumn2",
+				"derivedColumn2 select(mapColumn(",
+				"          Country = country,",
+				"          City = city,",
+				"          Region,",
+				"          Time,",
+				"          Sunrise,",
+				"          Sunset,",
+				"          Humidity,",
+				"          Pressure,",
+				"          Temperature,",
+				"          WindSpeed = Wind_speed",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          country as string,",
+				"          city as string",
+				"     ),",
+				"     partitionFileNames:[($sinkfilename)],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> CityWeatherCsv"
+			]
+		}
+	}
+}

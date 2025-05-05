@@ -1,0 +1,132 @@
+{
+	"name": "df_silverlayer",
+	"properties": {
+		"folder": {
+			"name": "project"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_gen2_projectfolder",
+						"type": "DatasetReference"
+					},
+					"name": "SourceSqSilverlayer"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_gen2_projectfolder",
+						"type": "DatasetReference"
+					},
+					"name": "SqProcessedSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "WindowFindingDuplicates"
+				},
+				{
+					"name": "filterRemovingDuplicates"
+				},
+				{
+					"name": "filterRemovingNull",
+					"description": "For key values, if the row is null, removing the row"
+				},
+				{
+					"name": "derivedColumnStandardisingData",
+					"description": "Filling Nulls if required,\nStandardizing strings format to upper,\n"
+				},
+				{
+					"name": "SelectRequiredColumns",
+					"description": "Removing upwanted columns,\nRenaming columns,\nReordering columns"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as short,",
+				"          airline as string,",
+				"          flight_number as string,",
+				"          utc_date as string,",
+				"          modified_datetime_utc as string,",
+				"          status as string,",
+				"          registration as string,",
+				"          bay_number as string,",
+				"          gate_number as string,",
+				"          estimated_datetime as string,",
+				"          scheduled_datetime_utc as string,",
+				"          direction as string,",
+				"          origin as string,",
+				"          destination as string,",
+				"          onblock_datetime as string,",
+				"          offblock_datetime as string,",
+				"          stand_number as string,",
+				"          aircraft_type as string,",
+				"          delay_reason as string,",
+				"          baggage_belt as short,",
+				"          turnaround_time_mins as short,",
+				"          passenger_count as short,",
+				"          cargo_weight_kg as double,",
+				"          crew_count as short,",
+				"          remarks as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: true) ~> SourceSqSilverlayer",
+				"SelectRequiredColumns window(over(FLIGHT_NUMBER,",
+				"          UTC_DATE,",
+				"          DIRECTION),",
+				"     asc(DIRECTION, true),",
+				"     Row_number = rowNumber()) ~> WindowFindingDuplicates",
+				"WindowFindingDuplicates filter(equals(Row_number, 1)) ~> filterRemovingDuplicates",
+				"filterRemovingDuplicates filter(!(isNull(FLIGHT_NUMBER) || isNull(UTC_DATE) || isNull(STATUS) || isNull(DIRECTION) || isNull(SCHEDULED_DATETIME))) ~> filterRemovingNull",
+				"filterRemovingNull derive(AIRLINE = upper(AIRLINE),",
+				"          FLIGHT_NUMBER = upper(FLIGHT_NUMBER),",
+				"          STATUS = upper(STATUS),",
+				"          REGISTRATION = upper(REGISTRATION),",
+				"          DIRECTION = upper(DIRECTION),",
+				"          ORIGIN = upper(ORIGIN),",
+				"          DESTINATION = upper(DESTINATION),",
+				"          ESTIMATED_DATETIME = iif(isNull(ESTIMATED_DATETIME), SCHEDULED_DATETIME, ESTIMATED_DATETIME)) ~> derivedColumnStandardisingData",
+				"SourceSqSilverlayer select(mapColumn(",
+				"          AIRLINE = airline,",
+				"          FLIGHT_NUMBER = flight_number,",
+				"          UTC_DATE = utc_date,",
+				"          STATUS = status,",
+				"          DIRECTION = direction,",
+				"          ORIGIN = origin,",
+				"          DESTINATION = destination,",
+				"          REGISTRATION = registration,",
+				"          BAY_NUMBER = bay_number,",
+				"          GATE_NUMBER = gate_number,",
+				"          AIRCRAFT_TYPE = aircraft_type,",
+				"          SCHEDULED_DATETIME = scheduled_datetime_utc,",
+				"          ESTIMATED_DATETIME = estimated_datetime,",
+				"          ONBLOCK_DATETIME = onblock_datetime,",
+				"          OFFBLOCK_DATETIME = offblock_datetime,",
+				"          MODIFIED_DATETIME = modified_datetime_utc,",
+				"          STAND_NUMBER = stand_number,",
+				"          DELAY_REASON = delay_reason,",
+				"          BAGGAGE_BELT = baggage_belt,",
+				"          PASSENGER_COUNT = passenger_count,",
+				"          CARGO_WEIGHT = cargo_weight_kg,",
+				"          CREW_COUNT = crew_count,",
+				"          REMARKS = remarks",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectRequiredColumns",
+				"derivedColumnStandardisingData sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['processeddata.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> SqProcessedSink"
+			]
+		}
+	}
+}

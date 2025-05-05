@@ -1,0 +1,53 @@
+{
+	"name": "pipeline_refineddata",
+	"properties": {
+		"activities": [
+			{
+				"name": "refinedataflow",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_goldlayer",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"ProcessedSQData": {
+								"directory": {
+									"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "processeddata.csv"
+							},
+							"RefinedDataSink": {
+								"directory": {
+									"value": "refined/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "refineddata.csv"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "project"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-04-29T12:30:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

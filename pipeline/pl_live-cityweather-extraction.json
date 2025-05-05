@@ -1,0 +1,48 @@
+{
+	"name": "pl_live-cityweather-extraction",
+	"properties": {
+		"activities": [
+			{
+				"name": "CityWeather",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_externalcall",
+						"type": "DataFlowReference",
+						"parameters": {
+							"sinkfilename": {
+								"value": "'ExternalCallTransformation/@{formatDateTime(utcnow(),'yyyyMMdd')}_CityWeather.csv'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
+				}
+			}
+		],
+		"variables": {
+			"filename": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-05-01T10:36:51Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

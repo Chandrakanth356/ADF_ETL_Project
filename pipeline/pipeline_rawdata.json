@@ -1,0 +1,216 @@
+{
+	"name": "pipeline_rawdata",
+	"properties": {
+		"activities": [
+			{
+				"name": "lookup_tablemetadata",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_chandudb",
+						"type": "DatasetReference",
+						"parameters": {
+							"tablename": "tablemetadata"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "foreach_table",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_pipelinemetadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lookup_tablemetadata').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "copy_rawdata_toblob",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select * from project.@{item().sourcetable} where modified_datetime_utc > '@{activity('Lookup_pipelinemetadata').output.firstRow.lastruntime}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_sql_chandudb",
+									"type": "DatasetReference",
+									"parameters": {
+										"tablename": {
+											"value": "@item().sourcetable",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_gen2_projectfolder",
+									"type": "DatasetReference",
+									"parameters": {
+										"directory": {
+											"value": "raw/@{item().sinkpath}/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "copieddata.csv"
+									}
+								}
+							]
+						},
+						{
+							"name": "Update_pipelinemetadata",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "copy_rawdata_toblob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "sqllink",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "INSERT INTO project.pipelinemetadata VALUES ( 'pl_raw_project', GETDATE(), 'success', '@{item().sourcetable}' )",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_pipelinemetadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "lookup_tablemetadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT Max(pipelineruntime) as lastruntime FROM project.pipelinemetadata WHERE tablename = '@{activity('lookup_tablemetadata').output.value[0].sourcetable}' and status = 'success'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_chandudb",
+						"type": "DatasetReference",
+						"parameters": {
+							"tablename": {
+								"value": "pipelinemetadata",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			}
+		],
+		"variables": {
+			"tablename": {
+				"type": "String"
+			},
+			"datetimevalue": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "project"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-04-29T12:30:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
