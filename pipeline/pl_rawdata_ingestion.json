@@ -1,5 +1,5 @@
 {
-	"name": "pipeline_rawdata",
+	"name": "pl_rawdata_ingestion",
 	"properties": {
 		"activities": [
 			{
@@ -21,7 +21,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_sql_chandudb",
+						"referenceName": "ds_sqldb",
 						"type": "DatasetReference",
 						"parameters": {
 							"tablename": "tablemetadata"
@@ -35,7 +35,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Lookup_pipelinemetadata",
+						"activity": "lookup_tablemetadata",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -51,7 +51,14 @@
 						{
 							"name": "copy_rawdata_toblob",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Lookup_pipelinemetadata",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -93,7 +100,7 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "ds_sql_chandudb",
+									"referenceName": "ds_sqldb",
 									"type": "DatasetReference",
 									"parameters": {
 										"tablename": {
@@ -105,7 +112,7 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "ds_gen2_projectfolder",
+									"referenceName": "ds_gen2_storage",
 									"type": "DatasetReference",
 									"parameters": {
 										"directory": {
@@ -152,49 +159,42 @@
 								],
 								"scriptBlockExecutionTimeout": "02:00:00"
 							}
-						}
-					]
-				}
-			},
-			{
-				"name": "Lookup_pipelinemetadata",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "lookup_tablemetadata",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "SELECT Max(pipelineruntime) as lastruntime FROM project.pipelinemetadata WHERE tablename = '@{activity('lookup_tablemetadata').output.value[0].sourcetable}' and status = 'success'",
-							"type": "Expression"
 						},
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "ds_sql_chandudb",
-						"type": "DatasetReference",
-						"parameters": {
-							"tablename": {
-								"value": "pipelinemetadata",
-								"type": "Expression"
+						{
+							"name": "Lookup_pipelinemetadata",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT Max(pipelineruntime) as lastruntime FROM project.pipelinemetadata WHERE tablename = '@{activity('lookup_tablemetadata').output.value[0].sourcetable}' and status = 'success'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_sqldb",
+									"type": "DatasetReference",
+									"parameters": {
+										"tablename": {
+											"value": "pipelinemetadata",
+											"type": "Expression"
+										}
+									}
+								}
 							}
 						}
-					}
+					]
 				}
 			}
 		],

@@ -1,9 +1,9 @@
 {
-	"name": "pipeline_processeddata",
+	"name": "pl_refining_reporting",
 	"properties": {
 		"activities": [
 			{
-				"name": "df_processed_data",
+				"name": "df_refining_reporting",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,22 +16,28 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_silverlayer",
+						"referenceName": "df_refining_reporting",
 						"type": "DataFlowReference",
 						"datasetParameters": {
-							"SourceSqSilverlayer": {
-								"directory": {
-									"value": "raw/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
-									"type": "Expression"
-								},
-								"filename": "copieddata.csv"
-							},
-							"SqProcessedSink": {
+							"ProcessedSQData": {
 								"directory": {
 									"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
 									"type": "Expression"
 								},
 								"filename": "processeddata.csv"
+							},
+							"ProcessedTRData": {
+								"directory": {
+									"value": "processed/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "processeddata.csv"
+							},
+							"sinktoFlightsReportingMainTale": {
+								"tablename": "FlightsReporting"
+							},
+							"InserttoHistorytable": {
+								"tablename": "FlightsReportingAudit"
 							}
 						}
 					},
@@ -46,11 +52,6 @@
 				}
 			}
 		],
-		"variables": {
-			"sqsourcepath": {
-				"type": "String"
-			}
-		},
 		"folder": {
 			"name": "project"
 		},

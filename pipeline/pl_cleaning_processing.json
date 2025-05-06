@@ -1,9 +1,9 @@
 {
-	"name": "pipeline_refineddata",
+	"name": "pl_cleaning_processing",
 	"properties": {
 		"activities": [
 			{
-				"name": "refinedataflow",
+				"name": "df_cleaning_data",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,22 +16,36 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_goldlayer",
+						"referenceName": "df_cleaning_processing",
 						"type": "DataFlowReference",
 						"datasetParameters": {
-							"ProcessedSQData": {
+							"SourceSqSilverlayer": {
+								"directory": {
+									"value": "raw/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "copieddata.csv"
+							},
+							"sourceTrSilverlayer": {
+								"directory": {
+									"value": "raw/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "copieddata.csv"
+							},
+							"SqProcessedSink": {
 								"directory": {
 									"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
 									"type": "Expression"
 								},
 								"filename": "processeddata.csv"
 							},
-							"RefinedDataSink": {
+							"TrProcessedSink": {
 								"directory": {
-									"value": "refined/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"value": "processed/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
 									"type": "Expression"
 								},
-								"filename": "refineddata.csv"
+								"filename": "processeddata.csv"
 							}
 						}
 					},
@@ -39,10 +53,18 @@
 						"coreCount": 8,
 						"computeType": "General"
 					},
-					"traceLevel": "Fine"
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
 				}
 			}
 		],
+		"variables": {
+			"sqsourcepath": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "project"
 		},
