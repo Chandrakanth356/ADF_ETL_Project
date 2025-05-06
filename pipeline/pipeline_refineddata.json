@@ -26,12 +26,18 @@
 								},
 								"filename": "processeddata.csv"
 							},
-							"RefinedDataSink": {
+							"ProcessedTRData": {
 								"directory": {
-									"value": "refined/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"value": "processed/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
 									"type": "Expression"
 								},
-								"filename": "refineddata.csv"
+								"filename": "processeddata.csv"
+							},
+							"sinktoFlightsReportingMainTale": {
+								"tablename": "FlightsReporting"
+							},
+							"InserttoHistorytable": {
+								"tablename": "FlightsReportingAudit"
 							}
 						}
 					},
@@ -39,7 +45,10 @@
 						"coreCount": 8,
 						"computeType": "General"
 					},
-					"traceLevel": "Fine"
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
 				}
 			}
 		],
