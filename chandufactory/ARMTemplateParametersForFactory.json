@@ -1,0 +1,24 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "chandufactory"
+		},
+		"gen2storagelink_properties_typeProperties_url": {
+			"value": "https://chandustorage.dfs.core.windows.net/"
+		},
+		"keyvaultlink_properties_typeProperties_baseUrl": {
+			"value": "https://Chanduvault.vault.azure.net/"
+		},
+		"sqllink_properties_typeProperties_server": {
+			"value": "chanduserver356.database.windows.net"
+		},
+		"sqllink_properties_typeProperties_database": {
+			"value": "chandusqldb"
+		},
+		"sqllink_properties_typeProperties_userName": {
+			"value": "chandu"
+		}
+	}
+}

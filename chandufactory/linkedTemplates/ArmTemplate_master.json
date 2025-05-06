@@ -1,0 +1,77 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "chandufactory"
+		},
+		"gen2storagelink_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://chandustorage.dfs.core.windows.net/"
+		},
+		"keyvaultlink_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://Chanduvault.vault.azure.net/"
+		},
+		"sqllink_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "chanduserver356.database.windows.net"
+		},
+		"sqllink_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "chandusqldb"
+		},
+		"sqllink_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "chandu"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "chandufactory_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"keyvaultlink_properties_typeProperties_baseUrl": {
+						"value": "[parameters('keyvaultlink_properties_typeProperties_baseUrl')]"
+					},
+					"gen2storagelink_properties_typeProperties_url": {
+						"value": "[parameters('gen2storagelink_properties_typeProperties_url')]"
+					},
+					"sqllink_properties_typeProperties_server": {
+						"value": "[parameters('sqllink_properties_typeProperties_server')]"
+					},
+					"sqllink_properties_typeProperties_database": {
+						"value": "[parameters('sqllink_properties_typeProperties_database')]"
+					},
+					"sqllink_properties_typeProperties_userName": {
+						"value": "[parameters('sqllink_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

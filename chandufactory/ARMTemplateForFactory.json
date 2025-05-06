@@ -1,0 +1,1210 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "chandufactory"
+		},
+		"gen2storagelink_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://chandustorage.dfs.core.windows.net/"
+		},
+		"keyvaultlink_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://Chanduvault.vault.azure.net/"
+		},
+		"sqllink_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "chanduserver356.database.windows.net"
+		},
+		"sqllink_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "chandusqldb"
+		},
+		"sqllink_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "chandu"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_cleaning_processing')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "df_cleaning_data",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_cleaning_processing",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SourceSqSilverlayer": {
+										"directory": {
+											"value": "raw/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "copieddata.csv"
+									},
+									"sourceTrSilverlayer": {
+										"directory": {
+											"value": "raw/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "copieddata.csv"
+									},
+									"SqProcessedSink": {
+										"directory": {
+											"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "processeddata.csv"
+									},
+									"TrProcessedSink": {
+										"directory": {
+											"value": "processed/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "processeddata.csv"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"sqsourcepath": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "project"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-04-29T12:30:10Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_cleaning_processing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Raw data Ingestion",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_rawdata_ingestion",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Cleaning data",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Raw data Ingestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_cleaning_processing",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Data to reporting tables",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Cleaning data",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_refining_reporting",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "project"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_rawdata_ingestion')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_cleaning_processing')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_refining_reporting')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_rawdata_ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lookup_tablemetadata",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sqldb",
+								"type": "DatasetReference",
+								"parameters": {
+									"tablename": "tablemetadata"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "foreach_table",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lookup_tablemetadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lookup_tablemetadata').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "copy_rawdata_toblob",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Lookup_pipelinemetadata",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "select * from project.@{item().sourcetable} where modified_datetime_utc > '@{activity('Lookup_pipelinemetadata').output.firstRow.lastruntime}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_sqldb",
+											"type": "DatasetReference",
+											"parameters": {
+												"tablename": {
+													"value": "@item().sourcetable",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_gen2_storage",
+											"type": "DatasetReference",
+											"parameters": {
+												"directory": {
+													"value": "raw/@{item().sinkpath}/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+													"type": "Expression"
+												},
+												"filename": "copieddata.csv"
+											}
+										}
+									]
+								},
+								{
+									"name": "Update_pipelinemetadata",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "copy_rawdata_toblob",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "sqllink",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": {
+													"value": "INSERT INTO project.pipelinemetadata VALUES ( 'pl_raw_project', GETDATE(), 'success', '@{item().sourcetable}' )",
+													"type": "Expression"
+												}
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "Lookup_pipelinemetadata",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "SELECT Max(pipelineruntime) as lastruntime FROM project.pipelinemetadata WHERE tablename = '@{activity('lookup_tablemetadata').output.value[0].sourcetable}' and status = 'success'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "ds_sqldb",
+											"type": "DatasetReference",
+											"parameters": {
+												"tablename": {
+													"value": "pipelinemetadata",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"tablename": {
+						"type": "String"
+					},
+					"datetimevalue": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "project"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-04-29T12:30:10Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_sqldb')]",
+				"[concat(variables('factoryId'), '/datasets/ds_gen2_storage')]",
+				"[concat(variables('factoryId'), '/linkedServices/sqllink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_refining_reporting')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "df_refining_reporting",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_refining_reporting",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"ProcessedSQData": {
+										"directory": {
+											"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "processeddata.csv"
+									},
+									"ProcessedTRData": {
+										"directory": {
+											"value": "processed/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+											"type": "Expression"
+										},
+										"filename": "processeddata.csv"
+									},
+									"sinktoFlightsReportingMainTale": {
+										"tablename": "FlightsReporting"
+									},
+									"InserttoHistorytable": {
+										"tablename": "FlightsReportingAudit"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "project"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-04-29T12:30:10Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_refining_reporting')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_gen2_storage')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "gen2storagelink",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"directory": {
+						"type": "string"
+					},
+					"filename": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "project"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().directory",
+							"type": "Expression"
+						},
+						"fileSystem": "project"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/gen2storagelink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_sqldb')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "sqllink",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"tablename": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "project"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "project",
+					"table": {
+						"value": "@dataset().tablename",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/sqllink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/gen2storagelink')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('gen2storagelink_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "keyvaultlink",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "gen2key"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/keyvaultlink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/keyvaultlink')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('keyvaultlink_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sqllink')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('sqllink_properties_typeProperties_server')]",
+					"database": "[parameters('sqllink_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('sqllink_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "keyvaultlink",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "sqlpassword"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/keyvaultlink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_etl_master_pipeline')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_master",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-05-07T00:00:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								0
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_cleaning_processing')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "project"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_gen2_storage",
+								"type": "DatasetReference"
+							},
+							"name": "SourceSqSilverlayer"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_gen2_storage",
+								"type": "DatasetReference"
+							},
+							"name": "sourceTrSilverlayer"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_gen2_storage",
+								"type": "DatasetReference"
+							},
+							"name": "SqProcessedSink"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_gen2_storage",
+								"type": "DatasetReference"
+							},
+							"name": "TrProcessedSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "WindowFindingDuplicates"
+						},
+						{
+							"name": "filterRemovingDuplicates"
+						},
+						{
+							"name": "filterRemovingNull",
+							"description": "For key values, if the row is null, removing the row"
+						},
+						{
+							"name": "derivedColumnStandardisingData",
+							"description": "Filling Nulls if required,\nStandardizing strings format to upper,\n"
+						},
+						{
+							"name": "SelectRequiredColumns",
+							"description": "Removing upwanted columns,\nRenaming columns,\nReordering columns"
+						},
+						{
+							"name": "selectRequired"
+						},
+						{
+							"name": "WindowFindingDuplicates2"
+						},
+						{
+							"name": "filterRemovingDuplicates2"
+						},
+						{
+							"name": "filterRemovingNull2"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as short,",
+						"          airline as string,",
+						"          flight_number as string,",
+						"          utc_date as string,",
+						"          modified_datetime_utc as string,",
+						"          status as string,",
+						"          registration as string,",
+						"          bay_number as string,",
+						"          gate_number as string,",
+						"          estimated_datetime as string,",
+						"          scheduled_datetime_utc as string,",
+						"          direction as string,",
+						"          origin as string,",
+						"          destination as string,",
+						"          onblock_datetime as string,",
+						"          offblock_datetime as string,",
+						"          stand_number as string,",
+						"          aircraft_type as string,",
+						"          delay_reason as string,",
+						"          baggage_belt as short,",
+						"          turnaround_time_mins as short,",
+						"          passenger_count as short,",
+						"          cargo_weight_kg as double,",
+						"          crew_count as short,",
+						"          remarks as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: true) ~> SourceSqSilverlayer",
+						"source(output(",
+						"          id as short,",
+						"          airline as string,",
+						"          flight_number as string,",
+						"          utc_date as string,",
+						"          modified_datetime_utc as string,",
+						"          status as string,",
+						"          registration as string,",
+						"          bay_number as string,",
+						"          gate_number as string,",
+						"          estimated_datetime as string,",
+						"          scheduled_datetime_utc as string,",
+						"          direction as string,",
+						"          origin as string,",
+						"          destination as string,",
+						"          onblock_datetime as string,",
+						"          offblock_datetime as string,",
+						"          stand_number as string,",
+						"          aircraft_type as string,",
+						"          delay_reason as string,",
+						"          baggage_belt as short,",
+						"          turnaround_time_mins as short,",
+						"          passenger_count as short,",
+						"          cargo_weight_kg as double,",
+						"          crew_count as short,",
+						"          remarks as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: true) ~> sourceTrSilverlayer",
+						"SelectRequiredColumns window(over(FLIGHT_NUMBER,",
+						"          UTC_DATE,",
+						"          DIRECTION),",
+						"     asc(DIRECTION, true),",
+						"     Row_number = rowNumber()) ~> WindowFindingDuplicates",
+						"WindowFindingDuplicates filter(equals(Row_number, 1)) ~> filterRemovingDuplicates",
+						"filterRemovingDuplicates filter(!(isNull(FLIGHT_NUMBER) || isNull(UTC_DATE) || isNull(STATUS) || isNull(DIRECTION) || isNull(SCHEDULED_DATETIME))) ~> filterRemovingNull",
+						"filterRemovingNull derive(AIRLINE = upper(AIRLINE),",
+						"          FLIGHT_NUMBER = upper(FLIGHT_NUMBER),",
+						"          STATUS = upper(STATUS),",
+						"          REGISTRATION = upper(REGISTRATION),",
+						"          DIRECTION = upper(DIRECTION),",
+						"          ORIGIN = upper(ORIGIN),",
+						"          DESTINATION = upper(DESTINATION),",
+						"          ESTIMATED_DATETIME = iif(isNull(ESTIMATED_DATETIME), SCHEDULED_DATETIME, ESTIMATED_DATETIME)) ~> derivedColumnStandardisingData",
+						"SourceSqSilverlayer select(mapColumn(",
+						"          AIRLINE = airline,",
+						"          FLIGHT_NUMBER = flight_number,",
+						"          UTC_DATE = utc_date,",
+						"          STATUS = status,",
+						"          DIRECTION = direction,",
+						"          ORIGIN = origin,",
+						"          DESTINATION = destination,",
+						"          REGISTRATION = registration,",
+						"          BAY_NUMBER = bay_number,",
+						"          GATE_NUMBER = gate_number,",
+						"          AIRCRAFT_TYPE = aircraft_type,",
+						"          SCHEDULED_DATETIME = scheduled_datetime_utc,",
+						"          ESTIMATED_DATETIME = estimated_datetime,",
+						"          ONBLOCK_DATETIME = onblock_datetime,",
+						"          OFFBLOCK_DATETIME = offblock_datetime,",
+						"          MODIFIED_DATETIME = modified_datetime_utc,",
+						"          STAND_NUMBER = stand_number,",
+						"          DELAY_REASON = delay_reason,",
+						"          BAGGAGE_BELT = baggage_belt,",
+						"          PASSENGER_COUNT = passenger_count,",
+						"          CARGO_WEIGHT = cargo_weight_kg,",
+						"          CREW_COUNT = crew_count,",
+						"          REMARKS = remarks",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectRequiredColumns",
+						"sourceTrSilverlayer select(mapColumn(",
+						"          AIRLINE = airline,",
+						"          FLIGHT_NUMBER = flight_number,",
+						"          UTC_DATE = utc_date,",
+						"          STATUS = status,",
+						"          DIRECTION = direction,",
+						"          ORIGIN = origin,",
+						"          DESTINATION = destination,",
+						"          REGISTRATION = registration,",
+						"          BAY_NUMBER = bay_number,",
+						"          GATE_NUMBER = gate_number,",
+						"          AIRCRAFT_TYPE = aircraft_type,",
+						"          SCHEDULED_DATETIME = scheduled_datetime_utc,",
+						"          ESTIMATED_DATETIME = estimated_datetime,",
+						"          ONBLOCK_DATETIME = onblock_datetime,",
+						"          OFFBLOCK_DATETIME = offblock_datetime,",
+						"          MODIFIED_DATETIME = modified_datetime_utc,",
+						"          STAND_NUMBER = stand_number,",
+						"          DELAY_REASON = delay_reason,",
+						"          BAGGAGE_BELT = baggage_belt,",
+						"          PASSENGER_COUNT = passenger_count,",
+						"          CARGO_WEIGHT = cargo_weight_kg,",
+						"          CREW_COUNT = crew_count,",
+						"          REMARKS = remarks",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectRequired",
+						"selectRequired window(over(FLIGHT_NUMBER,",
+						"          UTC_DATE,",
+						"          DIRECTION),",
+						"     asc(DIRECTION, true),",
+						"     Row_number = rowNumber()) ~> WindowFindingDuplicates2",
+						"WindowFindingDuplicates2 filter(equals(Row_number, 1)) ~> filterRemovingDuplicates2",
+						"filterRemovingDuplicates2 filter(!(isNull(FLIGHT_NUMBER) || isNull(UTC_DATE) || isNull(STATUS) || isNull(DIRECTION) || isNull(SCHEDULED_DATETIME))) ~> filterRemovingNull2",
+						"filterRemovingNull2 derive(AIRLINE = upper(AIRLINE),",
+						"          FLIGHT_NUMBER = upper(FLIGHT_NUMBER),",
+						"          STATUS = upper(STATUS),",
+						"          REGISTRATION = upper(REGISTRATION),",
+						"          DIRECTION = upper(DIRECTION),",
+						"          ORIGIN = upper(ORIGIN),",
+						"          DESTINATION = upper(DESTINATION),",
+						"          ESTIMATED_DATETIME = iif(isNull(ESTIMATED_DATETIME), SCHEDULED_DATETIME, ESTIMATED_DATETIME)) ~> derivedColumn1",
+						"derivedColumnStandardisingData sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['processeddata.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> SqProcessedSink",
+						"derivedColumn1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['processeddata.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> TrProcessedSink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_gen2_storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_refining_reporting')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "project"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_gen2_storage",
+								"type": "DatasetReference"
+							},
+							"name": "ProcessedSQData"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_gen2_storage",
+								"type": "DatasetReference"
+							},
+							"name": "ProcessedTRData"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_sqldb",
+								"type": "DatasetReference"
+							},
+							"name": "sinktoFlightsReportingMainTale"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_sqldb",
+								"type": "DatasetReference"
+							},
+							"name": "InserttoHistorytable"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectColumns"
+						},
+						{
+							"name": "derivedColumn"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "select3"
+						},
+						{
+							"name": "union1"
+						},
+						{
+							"name": "alterRowUpsertpolicy"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          AIRLINE as string,",
+						"          FLIGHT_NUMBER as string,",
+						"          UTC_DATE as string,",
+						"          STATUS as string,",
+						"          DIRECTION as string,",
+						"          ORIGIN as string,",
+						"          DESTINATION as string,",
+						"          REGISTRATION as string,",
+						"          BAY_NUMBER as string,",
+						"          GATE_NUMBER as string,",
+						"          AIRCRAFT_TYPE as string,",
+						"          SCHEDULED_DATETIME as string,",
+						"          ESTIMATED_DATETIME as string,",
+						"          ONBLOCK_DATETIME as string,",
+						"          OFFBLOCK_DATETIME as string,",
+						"          MODIFIED_DATETIME as string,",
+						"          STAND_NUMBER as string,",
+						"          DELAY_REASON as string,",
+						"          BAGGAGE_BELT as short,",
+						"          PASSENGER_COUNT as short,",
+						"          CARGO_WEIGHT as double,",
+						"          CREW_COUNT as short,",
+						"          REMARKS as string,",
+						"          Row_number as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> ProcessedSQData",
+						"source(output(",
+						"          AIRLINE as string,",
+						"          FLIGHT_NUMBER as string,",
+						"          UTC_DATE as string,",
+						"          STATUS as string,",
+						"          DIRECTION as string,",
+						"          ORIGIN as string,",
+						"          DESTINATION as string,",
+						"          REGISTRATION as string,",
+						"          BAY_NUMBER as string,",
+						"          GATE_NUMBER as string,",
+						"          AIRCRAFT_TYPE as string,",
+						"          SCHEDULED_DATETIME as string,",
+						"          ESTIMATED_DATETIME as string,",
+						"          ONBLOCK_DATETIME as string,",
+						"          OFFBLOCK_DATETIME as string,",
+						"          MODIFIED_DATETIME as string,",
+						"          STAND_NUMBER as string,",
+						"          DELAY_REASON as string,",
+						"          BAGGAGE_BELT as short,",
+						"          PASSENGER_COUNT as short,",
+						"          CARGO_WEIGHT as double,",
+						"          CREW_COUNT as short,",
+						"          REMARKS as string,",
+						"          Row_number as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> ProcessedTRData",
+						"ProcessedSQData select(mapColumn(",
+						"          AIRLINE,",
+						"          FLIGHT_IDENTITY = FLIGHT_NUMBER,",
+						"          UTC_DATE,",
+						"          STATUS,",
+						"          DIRECTION,",
+						"          ORIGIN,",
+						"          DESTINATION,",
+						"          REGISTRATION,",
+						"          BAY_NUMBER,",
+						"          GATE_NUMBER,",
+						"          AIRCRAFT_TYPE,",
+						"          SCHEDULED_DATETIME,",
+						"          ESTIMATED_DATETIME,",
+						"          ONBLOCK_DATETIME,",
+						"          OFFBLOCK_DATETIME,",
+						"          MODIFIED_DATETIME,",
+						"          STAND_POSITION = STAND_NUMBER,",
+						"          DELAY_REASON,",
+						"          BAGGAGE_BELT,",
+						"          PASSENGER_COUNT,",
+						"          CARGO_WEIGHT,",
+						"          CREW_COUNT,",
+						"          REMARKS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectColumns",
+						"selectColumns derive(FLIGHT_NUMBER = substring(trim(FLIGHT_IDENTITY), 3),",
+						"          FLIGHT_ID = split(concatWS('_',FLIGHT_IDENTITY,left(SCHEDULED_DATETIME,10),substring(SCHEDULED_DATETIME,12,17)),'.')[1],",
+						"          STATUS = case(STATUS == 'SH','SCHEDULED',\r",
+						"STATUS == 'CX', 'CANCELLED',\r",
+						"'OTHER')) ~> derivedColumn",
+						"derivedColumn select(mapColumn(",
+						"          FLIGHT_ID,",
+						"          AIRLINE,",
+						"          FLIGHT_NUMBER,",
+						"          FLIGHT_IDENTITY,",
+						"          UTC_DATE,",
+						"          STATUS,",
+						"          DIRECTION,",
+						"          ORIGIN,",
+						"          DESTINATION,",
+						"          REGISTRATION,",
+						"          BAY_NUMBER,",
+						"          GATE_NUMBER,",
+						"          AIRCRAFT_TYPE,",
+						"          SCHEDULED_DATETIME,",
+						"          ESTIMATED_DATETIME,",
+						"          ONBLOCK_DATETIME,",
+						"          OFFBLOCK_DATETIME,",
+						"          MODIFIED_DATETIME,",
+						"          STAND_POSITION,",
+						"          DELAY_REASON,",
+						"          BAGGAGE_BELT,",
+						"          PASSENGER_COUNT,",
+						"          CARGO_WEIGHT,",
+						"          CREW_COUNT,",
+						"          REMARKS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"ProcessedTRData select(mapColumn(",
+						"          AIRLINE,",
+						"          FLIGHT_NUMBER,",
+						"          UTC_DATE,",
+						"          STATUS,",
+						"          DIRECTION,",
+						"          ORIGIN,",
+						"          DESTINATION,",
+						"          REGISTRATION,",
+						"          BAY_NUMBER,",
+						"          GATE_NUMBER,",
+						"          AIRCRAFT_TYPE,",
+						"          SCHEDULED_DATETIME,",
+						"          ESTIMATED_DATETIME,",
+						"          ONBLOCK_DATETIME,",
+						"          OFFBLOCK_DATETIME,",
+						"          MODIFIED_DATETIME,",
+						"          STAND_NUMBER,",
+						"          DELAY_REASON,",
+						"          BAGGAGE_BELT,",
+						"          PASSENGER_COUNT,",
+						"          CARGO_WEIGHT,",
+						"          CREW_COUNT,",
+						"          REMARKS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 derive(FLIGHT_NUMBER = substring(trim(FLIGHT_NUMBER), 3),",
+						"          FLIGHT_ID = split(concatWS('_',FLIGHT_NUMBER,left(SCHEDULED_DATETIME,10),substring(SCHEDULED_DATETIME,12,17)),'.')[1],",
+						"          STATUS = case(STATUS == 'SH','SCHEDULED',\r",
+						"STATUS == 'CX', 'CANCELLED',\r",
+						"'OTHER'),",
+						"          FLIGHT_IDENTITY = FLIGHT_NUMBER) ~> derivedColumn1",
+						"derivedColumn1 select(mapColumn(",
+						"          FLIGHT_ID,",
+						"          AIRLINE,",
+						"          FLIGHT_NUMBER,",
+						"          FLIGHT_IDENTITY,",
+						"          UTC_DATE,",
+						"          STATUS,",
+						"          DIRECTION,",
+						"          ORIGIN,",
+						"          DESTINATION,",
+						"          REGISTRATION,",
+						"          BAY_NUMBER,",
+						"          GATE_NUMBER,",
+						"          AIRCRAFT_TYPE,",
+						"          SCHEDULED_DATETIME,",
+						"          ESTIMATED_DATETIME,",
+						"          ONBLOCK_DATETIME,",
+						"          OFFBLOCK_DATETIME,",
+						"          MODIFIED_DATETIME,",
+						"          STAND_NUMBER,",
+						"          DELAY_REASON,",
+						"          BAGGAGE_BELT,",
+						"          PASSENGER_COUNT,",
+						"          CARGO_WEIGHT,",
+						"          CREW_COUNT,",
+						"          REMARKS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select3",
+						"select1, select3 union(byName: true)~> union1",
+						"union1 alterRow(upsertIf(1==1)) ~> alterRowUpsertpolicy",
+						"alterRowUpsertpolicy sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['FLIGHT_ID','DIRECTION'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinktoFlightsReportingMainTale",
+						"union1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> InserttoHistorytable"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_gen2_storage')]",
+				"[concat(variables('factoryId'), '/datasets/ds_sqldb')]"
+			]
+		}
+	]
+}
