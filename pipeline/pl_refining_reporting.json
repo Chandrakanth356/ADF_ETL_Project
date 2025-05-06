@@ -1,9 +1,9 @@
 {
-	"name": "pipeline_refineddata",
+	"name": "pl_refining_reporting",
 	"properties": {
 		"activities": [
 			{
-				"name": "refinedataflow",
+				"name": "df_refining_reporting",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_goldlayer",
+						"referenceName": "df_refining_reporting",
 						"type": "DataFlowReference",
 						"datasetParameters": {
 							"ProcessedSQData": {

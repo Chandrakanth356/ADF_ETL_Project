@@ -1,5 +1,5 @@
 {
-	"name": "df_silverlayer",
+	"name": "df_cleaning_processing",
 	"properties": {
 		"folder": {
 			"name": "project"
@@ -9,14 +9,14 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "ds_gen2_projectfolder",
+						"referenceName": "ds_gen2_storage",
 						"type": "DatasetReference"
 					},
 					"name": "SourceSqSilverlayer"
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_gen2_projectfolder",
+						"referenceName": "ds_gen2_storage",
 						"type": "DatasetReference"
 					},
 					"name": "sourceTrSilverlayer"
@@ -25,14 +25,14 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "ds_gen2_projectfolder",
+						"referenceName": "ds_gen2_storage",
 						"type": "DatasetReference"
 					},
 					"name": "SqProcessedSink"
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_gen2_projectfolder",
+						"referenceName": "ds_gen2_storage",
 						"type": "DatasetReference"
 					},
 					"name": "TrProcessedSink"

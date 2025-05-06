@@ -1,5 +1,5 @@
 {
-	"name": "pipeline_rawdata",
+	"name": "pl_rawdata_ingestion",
 	"properties": {
 		"activities": [
 			{
@@ -21,7 +21,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_sql_chandudb",
+						"referenceName": "ds_sqldb",
 						"type": "DatasetReference",
 						"parameters": {
 							"tablename": "tablemetadata"
@@ -100,7 +100,7 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "ds_sql_chandudb",
+									"referenceName": "ds_sqldb",
 									"type": "DatasetReference",
 									"parameters": {
 										"tablename": {
@@ -112,7 +112,7 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "ds_gen2_projectfolder",
+									"referenceName": "ds_gen2_storage",
 									"type": "DatasetReference",
 									"parameters": {
 										"directory": {
@@ -183,7 +183,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_sql_chandudb",
+									"referenceName": "ds_sqldb",
 									"type": "DatasetReference",
 									"parameters": {
 										"tablename": {

@@ -1,9 +1,9 @@
 {
-	"name": "pipeline_processeddata",
+	"name": "pl_cleaning_processing",
 	"properties": {
 		"activities": [
 			{
-				"name": "df_processed_data",
+				"name": "df_cleaning_data",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_silverlayer",
+						"referenceName": "df_cleaning_processing",
 						"type": "DataFlowReference",
 						"datasetParameters": {
 							"SourceSqSilverlayer": {

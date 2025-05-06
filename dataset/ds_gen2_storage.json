@@ -1,5 +1,5 @@
 {
-	"name": "ds_gen2_projectfolder",
+	"name": "ds_gen2_storage",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "gen2storagelink",

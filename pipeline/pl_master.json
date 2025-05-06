@@ -12,7 +12,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "pipeline_rawdata",
+						"referenceName": "pl_rawdata_ingestion",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
@@ -35,7 +35,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "pipeline_processeddata",
+						"referenceName": "pl_cleaning_processing",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
@@ -58,7 +58,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "pipeline_refineddata",
+						"referenceName": "pl_refining_reporting",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true

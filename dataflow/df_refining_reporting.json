@@ -1,5 +1,5 @@
 {
-	"name": "df_goldlayer",
+	"name": "df_refining_reporting",
 	"properties": {
 		"folder": {
 			"name": "project"
@@ -9,14 +9,14 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "ds_gen2_projectfolder",
+						"referenceName": "ds_gen2_storage",
 						"type": "DatasetReference"
 					},
 					"name": "ProcessedSQData"
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_gen2_projectfolder",
+						"referenceName": "ds_gen2_storage",
 						"type": "DatasetReference"
 					},
 					"name": "ProcessedTRData"
@@ -25,14 +25,14 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "ds_sql_chandudb",
+						"referenceName": "ds_sqldb",
 						"type": "DatasetReference"
 					},
 					"name": "sinktoFlightsReportingMainTale"
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_sql_chandudb",
+						"referenceName": "ds_sqldb",
 						"type": "DatasetReference"
 					},
 					"name": "InserttoHistorytable"
