@@ -1,0 +1,254 @@
+********** CREATING SCHEMA****************************************************************************
+
+create schema project
+
+
+********** CREATING TABLES***************************************************************************
+
+1) sqsource
+
+create table project.sqsource (
+   id INT IDENTITY(1,1) PRIMARY KEY,
+   airline VARCHAR(10) NOT NULL,
+   flight_number VARCHAR(10) NOT NULL,
+   utc_date DATE NOT NULL,
+   modified_datetime_utc DATETIME2 NOT NULL,
+   status VARCHAR(5),
+   registration VARCHAR(20),
+   bay_number VARCHAR(10),
+   gate_number VARCHAR(10),
+   estimated_datetime DATETIME2,
+   scheduled_datetime_utc DATETIME2,
+   direction VARCHAR(10),
+   origin VARCHAR(5),
+   destination VARCHAR(5),
+   onblock_datetime DATETIME2,
+   offblock_datetime DATETIME2,
+   stand_number VARCHAR(10),
+   aircraft_type VARCHAR(20),
+   delay_reason VARCHAR(255),
+   baggage_belt VARCHAR(10),
+   turnaround_time_mins INT,
+   passenger_count INT,
+   cargo_weight_kg DECIMAL(10, 2),
+   crew_count INT,
+   remarks VARCHAR(255)
+);
+
+
+2) trsource
+
+create table project.trsource (
+   id INT IDENTITY(1,1) PRIMARY KEY,
+   airline VARCHAR(10) NOT NULL,
+   flight_number VARCHAR(10) NOT NULL,
+   utc_date DATE NOT NULL,
+   modified_datetime_utc DATETIME2 NOT NULL,
+   status VARCHAR(5),
+   registration VARCHAR(20),
+   bay_number VARCHAR(10),
+   gate_number VARCHAR(10),
+   estimated_datetime DATETIME2,
+   scheduled_datetime_utc DATETIME2,
+   direction VARCHAR(10),
+   origin VARCHAR(5),
+   destination VARCHAR(5),
+   onblock_datetime DATETIME2,
+   offblock_datetime DATETIME2,
+   stand_number VARCHAR(10),
+   aircraft_type VARCHAR(20),
+   delay_reason VARCHAR(255),
+   baggage_belt VARCHAR(10),
+   turnaround_time_mins INT,
+   passenger_count INT,
+   cargo_weight_kg DECIMAL(10, 2),
+   crew_count INT,
+   remarks VARCHAR(255)
+);
+
+
+3) pipelinemetadata
+
+create table project.pipelinemetadata 
+(sno int not null,
+pipelinename varchar(50),
+pipelineruntime datetime2,
+tablename varchar(50))
+
+
+4) tablemetadata
+
+create table project.tablemetadata 
+(sno int,
+sourceschema varchar(50),
+sourcetable varchar(50),
+sinkpath varchar(50),
+status varchar(50))
+
+5) pipelinelogs
+
+create table project.pipelinelogs (
+pipeline_name varchar(50),
+pipeline_runid varchar(100),
+pipeline_runtime datetime default getdate(),
+status varchar(20) )
+
+
+*********Inserting sample data to tables*******************************************************************************************
+
+1) 
+
+insert into project.sqsource
+(airline, flight_number, utc_date, modified_datetime_utc, status, registration, bay_number, gate_number,
+estimated_datetime, scheduled_datetime_utc, direction, origin, destination, onblock_datetime, offblock_datetime,
+stand_number, aircraft_type, delay_reason, baggage_belt, turnaround_time_mins, passenger_count, cargo_weight_kg, crew_count, remarks)
+VALUES
+-- Clean Row
+('SQ', 'SQ001', '2025-04-25', '2025-04-25T12:00:00', 'SH', '9V-SKA', 'B1', 'G1',
+'2025-04-25T11:50:00', '2025-04-25T12:00:00', 'Arrival', 'HKG', 'SIN',
+'2025-04-25T12:10:00', '2025-04-25T11:40:00', 'S1', 'A350', NULL, '1', 90, 250, 12000.50, 15, 'On time'),
+-- Duplicate Flight
+('SQ', 'SQ001', '2025-04-25', '2025-04-25T12:01:00', 'SH', '9V-SKA', 'B1', 'G1',
+'2025-04-25T11:50:00', '2025-04-25T12:00:00', 'Arrival', 'HKG', 'SIN',
+'2025-04-25T12:10:00', '2025-04-25T11:40:00', 'S1', 'A350', NULL, '1', 90, 250, 12000.50, 15, 'On time'),
+-- Missing Values (NULLs)
+('SQ', 'SQ002', '2025-04-25', '2025-04-25T13:00:00', NULL, NULL, NULL, 'G2',
+'2025-04-25T12:50:00', '2025-04-25T13:00:00', 'Arrival', 'KUL', 'SIN',
+NULL, NULL, 'S2', 'B787', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+-- Wrong Text Format (spaces, casing)
+('sq ', 'sq003 ', '2025-04-25', '2025-04-25T14:00:00', 'sh ', '9v-skb ', ' B2', ' G3 ',
+'2025-04-25T13:50:00', '2025-04-25T14:00:00', 'arrival', 'bkk', 'sin',
+'2025-04-25T14:10:00', '2025-04-25T13:40:00', ' s2 ', ' a380', NULL, '2', 85, 230, 11000.75, 14, 'delayed '),
+-- Invalid Data
+('SQ', 'SQ004', '2025-04-25', '2025-04-25T15:00:00', 'XX', '9V-SKC', 'B3', 'G4',
+'2025-04-25T14:50:00', '2025-04-25T15:00:00', 'Departure', 'SIN', 'NRT',
+'2025-04-25T15:10:00', '2025-04-25T14:40:00', 'S3', 'B777', NULL, '3', -30, 0, 10500.20, -2, 'unknown'),
+-- More clean rows
+('SQ', 'SQ005', '2025-04-25', '2025-04-25T16:00:00', 'SH', '9V-SKD', 'B4', 'G5',
+'2025-04-25T15:50:00', '2025-04-25T16:00:00', 'Arrival', 'CGK', 'SIN',
+'2025-04-25T16:10:00', '2025-04-25T15:40:00', 'S4', 'B737', NULL, '4', 60, 180, 9500.00, 12, 'Early'),
+('SQ', 'SQ006', '2025-04-25', '2025-04-25T17:00:00', 'CX', '9V-SKE', 'B5', 'G6',
+'2025-04-25T16:50:00', '2025-04-25T17:00:00', 'Arrival', 'KIX', 'SIN',
+'2025-04-25T17:10:00', '2025-04-25T16:40:00', 'S5', 'A350', NULL, '5', 75, 200, 9900.50, 13, 'Cancelled'),
+-- Introduce more minor problems (spaces, wrong casing)
+('SQ ', ' SQ007', '2025-04-25', '2025-04-25T18:00:00', ' cx', '9V-SKF', ' B6 ', ' G7',
+'2025-04-25T17:50:00', '2025-04-25T18:00:00', 'arrival ', 'hnd', 'sin',
+'2025-04-25T18:10:00', '2025-04-25T17:40:00', 's6', 'b787', NULL, '6', 70, 210, 10100.75, 14, ' canceled '),
+-- NULL estimated and actual times
+('SQ', 'SQ008', '2025-04-25', '2025-04-25T19:00:00', 'SH', '9V-SKG', NULL, NULL,
+NULL, NULL, 'Departure', 'SIN', 'ICN',
+NULL, NULL, 'S7', 'B777', NULL, '7', 55, 150, 8700.25, 10, ' '),
+-- More clean rows
+('SQ', 'SQ009', '2025-04-25', '2025-04-25T20:00:00', 'SH', '9V-SKH', 'B7', 'G8',
+'2025-04-25T19:50:00', '2025-04-25T20:00:00', 'Departure', 'SIN', 'DEL',
+'2025-04-25T20:10:00', '2025-04-25T19:40:00', 'S8', 'A380', NULL, '8', 90, 280, 12800.80, 16, 'Full load'),
+-- Add some variations for more practice
+('SQ', 'SQ010', '2025-04-25', '2025-04-25T21:00:00', 'CX', '9V-SKI', 'B8', 'G9',
+'2025-04-25T20:50:00', '2025-04-25T21:00:00', 'Departure', 'SIN', 'BOM',
+'2025-04-25T21:10:00', '2025-04-25T20:40:00', 'S9', 'B787', NULL, '9', 80, 260, 11500.10, 15, 'tech issue'),
+-- Dummy rows to make it 20
+('SQ', 'SQ011', '2025-04-25', '2025-04-25T22:00:00', 'SH', '9V-SKJ', 'B9', 'G10',
+'2025-04-25T21:50:00', '2025-04-25T22:00:00', 'Arrival', 'DPS', 'SIN',
+'2025-04-25T22:10:00', '2025-04-25T21:40:00', 'S10', 'A350', NULL, '10', 65, 220, 10000.00, 14, ' '),
+('SQ', 'SQ012', '2025-04-25', '2025-04-25T23:00:00', 'SH', '9V-SKK', 'B10', 'G11',
+'2025-04-25T22:50:00', '2025-04-25T23:00:00', 'Arrival', 'BKK', 'SIN',
+'2025-04-25T23:10:00', '2025-04-25T22:40:00', 'S11', 'B777', NULL, '11', 70, 240, 10600.00, 13, ' '),
+('SQ', 'SQ013', '2025-04-26', '2025-04-26T00:00:00', 'SH', '9V-SKL', 'B11', 'G12',
+'2025-04-25T23:50:00', '2025-04-26T00:00:00', 'Departure', 'SIN', 'SYD',
+'2025-04-26T00:10:00', '2025-04-25T23:40:00', 'S12', 'A380', NULL, '12', 95, 300, 13500.90, 17, 'VIP on board'),
+('SQ', 'SQ014', '2025-04-26', '2025-04-26T01:00:00', 'SH', '9V-SKM', 'B12', 'G13',
+'2025-04-25T00:50:00', '2025-04-26T01:00:00', 'Departure', 'SIN', 'LHR',
+'2025-04-26T01:10:00', '2025-04-25T00:40:00', 'S13', 'B777', NULL, '13', 85, 260, 11700.25, 15, ' ');
+
+
+2)
+
+insert into project.trsource
+(airline, flight_number, utc_date, modified_datetime_utc, status, registration, bay_number, gate_number,
+estimated_datetime, scheduled_datetime_utc, direction, origin, destination, onblock_datetime, offblock_datetime,
+stand_number, aircraft_type, delay_reason, baggage_belt, turnaround_time_mins, passenger_count, cargo_weight_kg, crew_count, remarks)
+VALUES
+-- Clean row
+('TR', 'TR101', '2025-04-25', '2025-04-25T08:00:00', 'SH', '9V-TRA', 'C1', 'H1',
+'2025-04-25T07:50:00', '2025-04-25T08:00:00', 'Arrival', 'KUL', 'SIN',
+'2025-04-25T08:10:00', '2025-04-25T07:40:00', 'T1', 'A320', NULL, '1', 50, 180, 3500.00, 6, 'On time'),
+-- Duplicate flight with different modified time
+('TR', 'TR101', '2025-04-25', '2025-04-25T08:05:00', 'SH', '9V-TRA', 'C1', 'H1',
+'2025-04-25T07:50:00', '2025-04-25T08:00:00', 'Arrival', 'KUL', 'SIN',
+'2025-04-25T08:10:00', '2025-04-25T07:40:00', 'T1', 'A320', NULL, '1', 50, 180, 3500.00, 6, 'On time'),
+-- NULL fields (missing data)
+('TR', 'TR102', '2025-04-25', '2025-04-25T09:00:00', NULL, NULL, NULL, NULL,
+NULL, '2025-04-25T09:00:00', 'Arrival', 'HKT', 'SIN',
+NULL, NULL, 'T2', 'A320', NULL, NULL, NULL, NULL, NULL, NULL, 'Delayed'),
+-- Wrong casing and extra spaces
+('tr ', ' tr103', '2025-04-25', '2025-04-25T10:00:00', ' cx ', '9v-trb ', ' C2 ', ' H2 ',
+'2025-04-25T09:50:00', '2025-04-25T10:00:00', 'arrival ', 'pen', 'sin',
+'2025-04-25T10:10:00', '2025-04-25T09:40:00', ' t3 ', ' a320 ', NULL, '2', 55, 160, 3400.50, 5, ' on time '),
+-- Invalid data
+('TR', 'TR104', '2025-04-25', '2025-04-25T11:00:00', 'XX', '9V-TRC', 'C3', 'H3',
+'2025-04-25T10:50:00', '2025-04-25T11:00:00', 'Departure', 'SIN', 'DPS',
+'2025-04-25T11:10:00', '2025-04-25T10:40:00', 'T4', 'A320', NULL, '3', -20, 0, 3000.00, -1, 'unknown'),
+-- More clean rows
+('TR', 'TR105', '2025-04-25', '2025-04-25T12:00:00', 'SH', '9V-TRD', 'C4', 'H4',
+'2025-04-25T11:50:00', '2025-04-25T12:00:00', 'Departure', 'SIN', 'HKT',
+'2025-04-25T12:10:00', '2025-04-25T11:40:00', 'T5', 'A320', NULL, '4', 45, 170, 3600.00, 7, 'On time'),
+('TR', 'TR106', '2025-04-25', '2025-04-25T13:00:00', 'CX', '9V-TRE', 'C5', 'H5',
+'2025-04-25T12:50:00', '2025-04-25T13:00:00', 'Departure', 'SIN', 'KUL',
+'2025-04-25T13:10:00', '2025-04-25T12:40:00', 'T6', 'A320', NULL, '5', 40, 150, 3300.25, 6, 'Cancelled'),
+-- NULL times (typical delay situation)
+('TR', 'TR107', '2025-04-25', '2025-04-25T14:00:00', 'SH', '9V-TRF', 'C6', 'H6',
+NULL, NULL, 'Departure', 'SIN', 'BKK',
+NULL, NULL, 'T7', 'A320', NULL, '6', 60, 160, 3500.75, 6, 'Awaiting clearance'),
+-- Short turnaround
+('TR', 'TR108', '2025-04-25', '2025-04-25T15:00:00', 'SH', '9V-TRG', 'C7', 'H7',
+'2025-04-25T14:50:00', '2025-04-25T15:00:00', 'Arrival', 'JKT', 'SIN',
+'2025-04-25T15:10:00', '2025-04-25T14:40:00', 'T8', 'A320', NULL, '7', 35, 140, 3100.00, 5, 'Quick turnaround'),
+-- Overloaded row (passenger & cargo-heavy)
+('TR', 'TR109', '2025-04-25', '2025-04-25T16:00:00', 'SH', '9V-TRH', 'C8', 'H8',
+'2025-04-25T15:50:00', '2025-04-25T16:00:00', 'Departure', 'SIN', 'CGK',
+'2025-04-25T16:10:00', '2025-04-25T15:40:00', 'T9', 'A320', NULL, '8', 60, 200, 4000.00, 8, 'Full capacity');
+
+
+3) 
+
+insert into project.tablemetadata values (1,'project','sqsource','sq','ready'),
+(2,'project','trsource','tr','ready');
+
+
+4)
+
+insert into project.project.pipelinemetadata values (1,'pl_raw_project','2025-04-25T01:00:00.0000000
+','success','sqsource')
+
+
+
+*********CREATING STORED PROCEDURES************************************************************************************
+
+1)
+
+create procedure project.spgetdata
+@tablename varchar(50),
+@lastpipelinerun varchar(50) 
+
+AS
+BEGIN
+select * from [project].[@tablename]
+WHERE cast(modified_datetime_utc as datetime) >=  cast(@lastpipelinerun as datetime)
+END;
+
+2)
+
+create procedure project.sp_update_pipelinelogs 
+@pipeline_name varchar(50),
+@pipeline_runid varchar(100),
+@status varchar(10) 
+
+As 
+Begin
+Insert into [project].[pipelinelogs] (pipeline_name,pipeline_runid,status) 
+values (@pipeline_name,@pipeline_runid,@status)
+End;
+
+
+**********************************************************************************************************************
+
