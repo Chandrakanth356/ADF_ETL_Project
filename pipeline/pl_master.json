@@ -1,5 +1,5 @@
 {
-	"name": "pipeline_master",
+	"name": "pl_master",
 	"properties": {
 		"activities": [
 			{
