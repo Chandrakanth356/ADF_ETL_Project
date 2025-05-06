@@ -26,9 +26,23 @@
 								},
 								"filename": "copieddata.csv"
 							},
+							"sourceTrSilverlayer": {
+								"directory": {
+									"value": "raw/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "copieddata.csv"
+							},
 							"SqProcessedSink": {
 								"directory": {
 									"value": "processed/sq/@{formatDateTime(utcNow(),'yyyyMMdd')}",
+									"type": "Expression"
+								},
+								"filename": "processeddata.csv"
+							},
+							"TrProcessedSink": {
+								"directory": {
+									"value": "processed/tr/@{formatDateTime(utcNow(),'yyyyMMdd')}",
 									"type": "Expression"
 								},
 								"filename": "processeddata.csv"
